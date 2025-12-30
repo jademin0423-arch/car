@@ -17,7 +17,8 @@ export function Breadcrumb({ items }: Props) {
           <li key={`${item.label}-${idx}`} className="flex items-center gap-1">
             {idx > 0 && <span aria-hidden="true">/</span>}
             {item.href ? (
-              <Link href={item.href as any} className="hover:text-primary-dark">
+              // @ts-ignore typedRoutes compatibility
+              <Link href={item.href} className="hover:text-primary-dark">
                 {item.label}
               </Link>
             ) : (
