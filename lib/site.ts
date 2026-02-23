@@ -14,7 +14,7 @@ export const SITE = {
     authorName: "장기렌트 정보 편집팀",
     reviewerName: "자동차 금융 검토팀",
     credentials: "장기렌트·자동차 금융 정보 콘텐츠 운영",
-    lastUpdatedDefault: "2025-12-26"
+    lastUpdatedDefault: "2025-02-23"
   },
   contact: {
     email: "contact@example.com",
