@@ -353,7 +353,7 @@ export function SiteShell({ children }: Props) {
           <span className="wf-cta-text">
             🚗 지금 조건이면 <b>월 납입금 더 줄일 수 있습니다</b>
           </span>
-          <a href="https://www.replyalba.com/pt/ZSzUHBDF6d" className="wf-cta-btn">
+          <a href="https://replyalba.com/intros/_frm/index.php?code=JUggdejXh2" className="wf-cta-btn">
             무료 장기렌트 견적 받기
           </a>
         </div>
@@ -362,7 +362,7 @@ export function SiteShell({ children }: Props) {
       {/* 플로팅 CTA 버튼 */}
       <div 
         className="floating-cta"
-        onClick={() => window.location.href = 'https://www.replyalba.com/pt/ZSzUHBDF6d'}
+        onClick={() => window.location.href = 'https://replyalba.com/intros/_frm/index.php?code=JUggdejXh2'}
       >
         💰 장기렌트 실시간 견적
       </div>
@@ -381,7 +381,7 @@ export function SiteShell({ children }: Props) {
             </div>
             <button
               className="exit-popup-btn"
-              onClick={() => window.location.href = 'https://www.replyalba.com/pt/ZSzUHBDF6d'}
+              onClick={() => window.location.href = 'https://replyalba.com/intros/_frm/index.php?code=JUggdejXh2'}
             >
               무료 견적 확인하기
             </button>
