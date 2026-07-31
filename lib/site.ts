@@ -4,7 +4,7 @@ export const SITE = {
   logoText: "장기렌트카 가이드",
   ctaPrimary: {
     label: "최저가 장기렌트 상담받기",
-    href: "https://replyalba.com/intros/_frm/index.php?code=JUggdejXh2"
+    href: "https://jadelink.kr/car/"
   },
   ctaSecondary: {
     label: "차종별 장기렌트 보기",
