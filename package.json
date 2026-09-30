@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "verify:seo-protected": "node scripts/verify-seo-protected.js",
-    "generate:editorial-pilot": "node scripts/generate-editorial-content.mjs"
+    "generate:editorial-pilot": "node scripts/generate-editorial-content.mjs",
+    "generate:editorial-missing": "node scripts/generate-editorial-content.mjs --missing"
   },
   "dependencies": {
     "next": "14.2.8",

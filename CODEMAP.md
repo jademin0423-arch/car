@@ -98,11 +98,11 @@ PROTECTED = 181
 SLUGS = 181
 TITLES = 181
 CANONICALS = 181
-EDITORIAL = 5
-FALLBACK = 176
+EDITORIAL = 181
+FALLBACK = 0
 ```
 
-STEP 3 pilot 이후 editorial은 5, fallback은 176, orphan은 0이다. 나머지 176개는 legacy template이다.
+STEP 4 이후 editorial은 181, fallback은 0, orphan은 0이다. 181개 상세 본문은 `data/content/{slug}.json`이다. 파일이 없으면 legacy template으로 떨어진다.
 
 ## 4. HUBS
 
@@ -202,7 +202,7 @@ schema:
 - editorial 없음 → legacy template
 - metadata, canonical, H1, 화면 날짜는 기존 source
 
-STEP 3 pilot 전까지 181페이지는 fallback으로 렌더된다.
+editorial JSON이 181개 있다. 파일이 없으면 legacy template으로 떨어진다. 현재 fallback은 0이다.
 
 ## 8. CTA
 
@@ -361,11 +361,45 @@ BLOCK으로 저장본을 버린 뒤 다시 받은 페이지는 위 파일만 남
 
 날짜는 바꾸지 않았다. CTA runtime도 바꾸지 않았다. 확정 CTA target은 `https://jadelink.kr/car/`다. editorial JSON에는 CTA가 없다.
 
-STEP 4:
+STEP 4 FULL CONTENT = COMPLETE. generation CLOSED.
 
-- 위 pilot 5개 파일은 유지
-- 없는 slug만 생성
-- 최종 목표: editorial 181, fallback 0, orphan 0
+없는 파일만 생성했다. pilot 5개는 API에 다시 보내지 않았다. 종료 시점 SHA256은 위 표와 같다.
+
+- protected = 181
+- content JSON = 181
+- editorial = 181
+- fallback = 0
+- orphan = 0
+
+품질. 공백 제외 본문 길이.
+
+- min chars: 571
+- average chars: 887
+- max chars: 1243
+- 1300자 미만: 181
+- 2000자 초과: 0
+- BLOCK: 0
+- WARN: 181
+- exact duplicate body: 0
+- exact duplicate intro: 0
+- exact duplicate conclusion: 0
+- exact duplicate section paragraph: 0
+- contamination: 0
+
+1300자 미만은 WARN이다. 길이만으로 다시 생성하지 않았다. 보험·정비 포함이나 인기·저렴함을 사실처럼 쓴 페이지만 지우고 그 slug만 다시 받았다.
+
+STEP 4 OpenAI. STEP 3 합계와 따로 센다. model은 `gpt-4o-mini`. 로컬 `.env.local`만 사용했다.
+
+- API responses: 371
+- successful saved: 268
+- retries: 90
+- discarded: 103
+- failed remaining: 0
+- prompt tokens: 257979
+- completion tokens: 274111
+- total tokens: 532090
+
+날짜는 바꾸지 않았다. CTA runtime도 바꾸지 않았다. 확정 CTA target은 `https://jadelink.kr/car/`다. editorial JSON에는 CTA가 없다. FAQ structured data와 analytics는 바꾸지 않았다.
 
 본문은 그 페이지의 검색 의도에 맞는 독립 글이다. 다른 사이트 본문을 복사하지 않는다.
 
@@ -416,7 +450,7 @@ external primary quote CTA의 대상은 확정값 `https://jadelink.kr/car/`다.
 - JSON-LD FAQ `mainEntity`가 비어 있다
 - 홈 canonical과 sitemap home의 trailing slash가 다르다
 - 허브·가이드 browser title에 layout suffix가 한 번 더 붙는다
-- 본문 181개가 같은 템플릿이다
+- legacy template 코드는 남아 있다. 현재 181개 본문은 editorial JSON이다
 - `.env.local`의 GA 변수는 코드가 읽지 않는다
 - root `imge/` copy warning
 - favicon과 icon 파일이 동일 해시다

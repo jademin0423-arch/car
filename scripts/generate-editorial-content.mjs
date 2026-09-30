@@ -6,6 +6,15 @@ const ROOT = process.cwd();
 const MODEL = "gpt-4o-mini";
 const CONTENT_DIR = path.join(ROOT, "data", "content");
 const MAX_ATTEMPTS = 3;
+const MISSING_CONCURRENCY = 3;
+const USAGE_LOG = path.join(process.env.TEMP || process.env.TMP || ROOT, "allcar-step4-usage.jsonl");
+const PILOT_HASHES = {
+  "audi-a3-longterm-rent": "d836835d95b45c275365f0356c3ebc765d3e1ad87657b48e0cb74f91a660e732",
+  "no-deposit-longterm-rent": "8a06b63abb2ffd7277de1b75db3a49f3254e5c04a33b2138fba8ee271590153e",
+  "longterm-rent-license-plate-insurance": "3ed0551dd798edd9c208690be819834f0e1f576a3b3d469fff01400edb5e1764",
+  "longterm-rent-car-price-compare": "b8b72c82d245d619b76ee9902e3cb1940e2562d9d64a656f462a45f9023c31f2",
+  "corporate-longterm-rent": "d990209e93d1a87372ccac3472f5ce9bf4c7e20d9d66964db81ba47b2fcad84a"
+};
 
 const PILOTS = [
   {
@@ -159,6 +168,7 @@ function validate(slug, data) {
   const blob = JSON.stringify(data);
   if (CONTAMINATION.test(blob)) throw new Error("contamination or CTA URL");
   const plain = collectText(data);
+  assertNoFabrication(slug, plain);
   if (slug === "longterm-rent-license-plate-insurance") {
     if (!plain.includes("하") || !plain.includes("허") || !plain.includes("호")) {
       throw new Error("missing rental plate explanation");
@@ -179,6 +189,44 @@ function validate(slug, data) {
     }
   }
   return data;
+}
+
+function assertNoFabrication(slug, plain) {
+  const rules = [
+    [/월\s*\d[\d,]*\s*만\s*원/, "specific monthly price"],
+    [/\d[\d,]*\s*원\s*(할인|특가)/, "specific discount"],
+    [/최저가(입니다|로 확정|가 확정)/, "confirmed lowest price"],
+    [/즉시\s*출고\s*(가능합니다|됩니다|보장|확정)/, "confirmed immediate delivery"],
+    [/재고가\s*있습니다/, "confirmed inventory"],
+    [/무조건\s*(승인|무심사)|무심사(로|가)\s*(승인|가능|보장)/, "guaranteed approval"],
+    [/보증금\s*0\s*원입니다|초기비용\s*0\s*원입니다|초기\s*비용(이|은)\s*없습니다|보증금이\s*없습니다|지불하지\s*않고|비용이\s*없으므로|비용\s*없이도/, "confirmed zero deposit"],
+    [/모든\s*(업체|계약).{0,24}(동일|포함되어)/, "universal contract terms"],
+    [/포함되어\s*있어|정비가\s*포함되어\s*있|보험이\s*포함되어\s*있/, "included coverage as fact"],
+    [/비용처리(가|은)\s*(가능합니다|됩니다|확정)|세금(을|이)\s*절감/, "confirmed tax result"],
+    [/가장\s*인기|판매량?\s*1위|시장\s*점유|대표적인\s*선택|상대적으로\s*저렴/, "unsupported market claim"],
+    [/연비\s*[\d.]+|\d+(\.\d+)?\s*km\/?l|\d+\s*마력/i, "unsupported specification"]
+  ];
+  const sentences = plain.split(/(?<=[.!?요])\s+|\n+/);
+  for (const sentence of sentences) {
+    if (/수\s*있|달라|다릅|단정|확인|아닙니다|않을|없을\s*수|보장하지|포함되지\s*않|계약마다|경우에 따라/.test(sentence)) continue;
+    for (const [pattern, reason] of rules) {
+      const match = sentence.match(pattern);
+      if (match) throw new Error(`factual block: ${reason} :: ${match[0]}`);
+    }
+  }
+  for (const sentence of sentences) {
+    if (/아니|단정하지|않을\s*수|보장하지|확인해야|확인하/.test(sentence)) continue;
+    if (/포함되어\s*있어|저렴합니다|상대적으로\s*저렴하|인기\s*있는|대표적인|무심사\s*승인|무심사로\s*진행/.test(sentence)) {
+      throw new Error("factual block: unsupported absolute claim");
+    }
+  }
+  if (slug !== "longterm-rent-license-plate-insurance" && /하\s*번호판|허\s*번호판|호\s*번호판|개인 소유|임대차 전용/.test(plain)) {
+    throw new Error("factual block: plate symbol expansion");
+  }
+  if (slug === "no-initial-cost-longterm-rent") {
+    const match = plain.match(/지불하지\s*않고|필요\s*없다는|부담\s*없음|비용\s*없이|포함되어|초기\s*자본이\s*필요/);
+    if (match) throw new Error(`factual block: confirmed zero deposit :: ${match[0]}`);
+  }
 }
 
 function collectText(data) {
@@ -225,7 +273,11 @@ async function requestContent(apiKey, item, brief) {
             "월 납입금과 조건은 차량, 계약기간, 약정거리, 보증금, 보험, 정비, 옵션, 업체, 시점에 따라 달라진다고 자연스럽게 쓴다.",
             "오늘의 가격, 현재 재고, 실시간 가격, 2026년 최저가, 현재 프로모션을 만들지 않는다.",
             "상담, 견적 신청, 무료 상담, URL, 브랜드 도메인을 넣지 않는다.",
-            "다른 페이지와 같은 문장 뼈대를 쓰지 말고 이 검색 의도에만 답한다."
+            "다른 페이지와 같은 문장 뼈대, 같은 소제목, 같은 FAQ를 쓰지 말고 이 검색 의도에만 답한다.",
+            "인기 순위, 판매량, 시장점유율, 연비 수치, 제원, 트림 가격, 출고 기간을 만들지 않는다.",
+            "번호판 문자별 법적 용도나 규정 예외를 만들지 않는다.",
+            "제목의 최저가, 특가, 즉시출고, 프로모션, 보조금은 사실로 쓰지 않는다. 같은 조건의 견적을 비교해야 확인할 수 있는 주제로 푼다.",
+            "세금, 비용처리, 보험, 정비는 계약과 전문가 확인에 따라 달라질 수 있다고만 쓴다."
           ].join("\n")
         },
         {
@@ -237,7 +289,7 @@ async function requestContent(apiKey, item, brief) {
             type: item.type,
             hubSlug: item.hubSlug,
             intent: brief.intent,
-            instruction: brief.reason,
+            instruction: brief.instruction,
             note: "pageTitle의 홍보 표현은 본문에서 사실로 확인된 내용처럼 쓰지 않는다. slug 값은 입력과 같아야 한다.",
             repair: brief.repair || ""
           })
@@ -260,6 +312,7 @@ async function requestContent(apiKey, item, brief) {
 
 function saveAtomic(slug, data) {
   const target = path.join(CONTENT_DIR, `${slug}.json`);
+  if (fs.existsSync(target)) throw new Error(`refusing to overwrite ${slug}`);
   const temp = `${target}.${process.pid}.tmp`;
   fs.writeFileSync(temp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
   fs.renameSync(temp, target);
@@ -272,7 +325,272 @@ function printSelection() {
   }
 }
 
+function fileHash(slug) {
+  const file = path.join(CONTENT_DIR, `${slug}.json`);
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+function assertPilotHashes() {
+  for (const [slug, expected] of Object.entries(PILOT_HASHES)) {
+    const actual = fileHash(slug);
+    if (actual !== expected) {
+      throw new Error(`pilot hash mismatch ${slug}`);
+    }
+  }
+}
+
+function intentFor(item) {
+  if (item.slug === "no-initial-cost-longterm-rent") {
+    return {
+      intent: "condition",
+      instruction:
+        "첫 문단은 반드시 이 문장으로 시작하라: 장기렌트 광고의 초기비용 없음은 선납금과 보증금이 견적에서 빠졌다는 뜻이 아닙니다. 이어서 견적서의 선납금, 보증금, 탁송비, 인수금 칸을 따로 읽는 순서를 설명하라. 보험과 정비는 상품에 따라 빠질 수 있다고만 써라. 금지 표현: 지불하지 않고, 필요 없다, 부담 없음, 비용 없이, 만으로, 포함되어, 초기 자본, 경제적. 영어 단어를 넣지 마라."
+    };
+  }
+  const text = `${item.keyword} ${item.pageTitle}`;
+  if (item.hubSlug === "customer-type" || /개인|법인|사업자|저신용|초년생/.test(text)) {
+    return {
+      intent: "customer",
+      instruction: "이 이용자 유형이 계약 전에 무엇을 비교하고 어디에 확인을 맡겨야 하는지 쓴다. 세무·승인 결과를 단정하지 않는다."
+    };
+  }
+  if (item.type === "platform" || /가격비교|견적|업체|캐피탈|렌터카/.test(text)) {
+    return {
+      intent: "platform-comparison",
+      instruction: "여러 견적을 같은 차량, 기간, 거리, 보증, 보험, 정비 조건으로 비교하는 기준을 쓴다. 순위와 현재 가격은 만들지 않는다."
+    };
+  }
+  if (item.hubSlug === "condition-type" || /무보증|초기비용|LPG|lpg|즉시|재렌트/.test(text)) {
+    return {
+      intent: "condition",
+      instruction: "이 계약 조건이 무엇을 바꾸는지, 월 납입금과 총비용에 어떤 차이가 생길 수 있는지, 계약서에서 무엇을 확인해야 하는지 쓴다."
+    };
+  }
+  if (item.hubSlug === "guide-review" || item.type === "guide") {
+    return {
+      intent: "guide-review",
+      instruction: "제목이 묻는 질문에 직접 답한다. 규정과 비용은 계약마다 다르다는 범위 안에서 확인 순서를 설명한다."
+    };
+  }
+  if (item.hubSlug === "car-type") {
+    return {
+      intent: "vehicle-type",
+      instruction: "이 차종을 장기렌트로 고를 때 용도, 탑승, 주행거리, 유지 항목 중 무엇을 견적에서 비교해야 하는지 쓴다. 판매량과 제원은 만들지 않는다."
+    };
+  }
+  return {
+    intent: "vehicle-model",
+    instruction: "이 차종을 장기렌트로 검토할 때 누구에게 맞는지, 어떤 계약 항목을 다른 차종 견적과 나란히 비교해야 하는지 쓴다. 가격, 인기, 출고, 제원을 사실처럼 쓰지 않는다."
+  };
+}
+
+function appendUsage(entry) {
+  fs.appendFileSync(USAGE_LOG, `${JSON.stringify(entry)}\n`, "utf8");
+}
+
+function readUsageLog() {
+  if (!fs.existsSync(USAGE_LOG)) return [];
+  return fs
+    .readFileSync(USAGE_LOG, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function generateOne(apiKey, item, stats) {
+  if (Object.prototype.hasOwnProperty.call(PILOT_HASHES, item.slug)) {
+    throw new Error(`refusing to generate frozen pilot ${item.slug}`);
+  }
+  const target = path.join(CONTENT_DIR, `${item.slug}.json`);
+  if (fs.existsSync(target)) {
+    stats.skipped += 1;
+    console.log(`SKIP existing ${item.slug}`);
+    return;
+  }
+  const brief = intentFor(item);
+  let stored = false;
+  let lastText = "";
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !stored; attempt += 1) {
+    try {
+      const result = await requestContent(apiKey, item, brief);
+      const part = {
+        slug: item.slug,
+        attempt,
+        prompt: result.usage.prompt_tokens || 0,
+        completion: result.usage.completion_tokens || 0,
+        total: result.usage.total_tokens || 0,
+        saved: false
+      };
+      stats.responses += 1;
+      stats.prompt += part.prompt;
+      stats.completion += part.completion;
+      stats.total += part.total;
+      appendUsage(part);
+      lastText = result.text;
+      console.log(`USAGE_PART ${item.slug} prompt=${part.prompt} completion=${part.completion} total=${part.total}`);
+      const parsed = validate(item.slug, normalizeContent(item.slug, JSON.parse(result.text)));
+      saveAtomic(item.slug, parsed);
+      part.saved = true;
+      stats.saved += 1;
+      stored = true;
+      console.log(`SAVED ${item.slug} chars=${charCount(parsed)} attempt=${attempt} intent=${brief.intent}`);
+    } catch (error) {
+      stats.discarded += 1;
+      if (attempt < MAX_ATTEMPTS) stats.retries += 1;
+      const message = error instanceof Error ? error.message : "request failed";
+      if (lastText) {
+        fs.writeFileSync(path.join(process.env.TEMP || process.env.TMP || ".", `allcar-discard-${item.slug}.txt`), lastText, "utf8");
+      }
+      console.log(`DISCARD ${item.slug} attempt=${attempt} reason=${message}`);
+      if (message.includes("429")) await sleep(15000);
+      else if (message.includes("API status 5")) await sleep(4000);
+    }
+  }
+  if (!stored) stats.failed.push(item.slug);
+}
+
+async function runPool(items, limit, worker) {
+  let cursor = 0;
+  async function run() {
+    while (cursor < items.length) {
+      const current = items[cursor];
+      cursor += 1;
+      await worker(current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => run()));
+}
+
+function exactGroups(records, pick) {
+  const groups = new Map();
+  for (const record of records) {
+    const value = pick(record).replace(/\s+/g, "");
+    if (!value) continue;
+    const list = groups.get(value) || [];
+    list.push(record.slug);
+    groups.set(value, list);
+  }
+  return [...groups.values()].filter((slugs) => slugs.length > 1);
+}
+
+function duplicateTargets(groups) {
+  const targets = new Set();
+  for (const group of groups) {
+    const unique = [...new Set(group)];
+    if (unique.length < 2) continue;
+    const replacements = unique.filter((slug) => !PILOT_HASHES[slug]);
+    const keepFrozen = unique.some((slug) => PILOT_HASHES[slug]);
+    const extras = keepFrozen ? replacements : replacements.slice(1);
+    for (const slug of extras) targets.add(slug);
+  }
+  return targets;
+}
+
+async function retryDuplicates(apiKey, keywords, stats) {
+  const records = keywords
+    .map((item) => {
+      const file = path.join(CONTENT_DIR, `${item.slug}.json`);
+      if (!fs.existsSync(file)) return null;
+      return { slug: item.slug, data: JSON.parse(fs.readFileSync(file, "utf8")) };
+    })
+    .filter(Boolean);
+  const targets = duplicateTargets([
+    ...exactGroups(records, (record) => collectText(record.data)),
+    ...exactGroups(records, (record) => record.data.intro),
+    ...exactGroups(records, (record) => record.data.conclusion)
+  ]);
+  const paragraphGroups = new Map();
+  for (const record of records) {
+    for (const section of record.data.sections || []) {
+      for (const paragraph of section.paragraphs || []) {
+        const key = paragraph.replace(/\s+/g, "");
+        const list = paragraphGroups.get(key) || [];
+        list.push(record.slug);
+        paragraphGroups.set(key, list);
+      }
+    }
+  }
+  for (const slug of duplicateTargets([...paragraphGroups.values()].filter((slugs) => new Set(slugs).size > 1))) {
+    targets.add(slug);
+  }
+  if (!targets.size) return;
+  console.log(`DUPLICATE_RETRY ${[...targets].join(",")}`);
+  const bySlug = new Map(keywords.map((item) => [item.slug, item]));
+  for (const slug of targets) {
+    if (PILOT_HASHES[slug]) continue;
+    const file = path.join(CONTENT_DIR, `${slug}.json`);
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    await generateOne(apiKey, bySlug.get(slug), stats);
+  }
+}
+
+async function runMissing() {
+  assertPilotHashes();
+  const keywords = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "keywords.json"), "utf8"));
+  const missing = keywords.filter((item) => !fs.existsSync(path.join(CONTENT_DIR, `${item.slug}.json`)));
+  const existing = keywords.length - missing.length;
+  console.log(`MISSING_ONLY existing=${existing} missing=${missing.length} frozen=${Object.keys(PILOT_HASHES).length}`);
+  for (const slug of Object.keys(PILOT_HASHES)) {
+    if (missing.some((item) => item.slug === slug)) {
+      throw new Error(`frozen pilot is missing a file ${slug}`);
+    }
+  }
+  const env = loadEnv();
+  if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is missing");
+  const stats = {
+    responses: 0,
+    saved: 0,
+    skipped: existing,
+    retries: 0,
+    discarded: 0,
+    failed: [],
+    prompt: 0,
+    completion: 0,
+    total: 0
+  };
+  await runPool(missing, MISSING_CONCURRENCY, (item) => generateOne(env.OPENAI_API_KEY, item, stats));
+  if (stats.failed.length) {
+    console.log(`RETRY_FAILED ${stats.failed.join(",")}`);
+    const bySlug = new Map(keywords.map((item) => [item.slug, item]));
+    const again = stats.failed.filter((slug) => !fs.existsSync(path.join(CONTENT_DIR, `${slug}.json`)));
+    stats.failed = [];
+    for (const slug of again) {
+      if (PILOT_HASHES[slug]) continue;
+      await generateOne(env.OPENAI_API_KEY, bySlug.get(slug), stats);
+    }
+  }
+  await retryDuplicates(env.OPENAI_API_KEY, keywords, stats);
+  assertPilotHashes();
+  const log = readUsageLog();
+  const prompt = log.reduce((sum, entry) => sum + (entry.prompt || 0), 0);
+  const completion = log.reduce((sum, entry) => sum + (entry.completion || 0), 0);
+  const total = log.reduce((sum, entry) => sum + (entry.total || 0), 0);
+  console.log("USAGE");
+  console.log(`model=${MODEL}`);
+  console.log(`api_responses=${log.length}`);
+  console.log(`successful_saved=${stats.saved}`);
+  console.log(`skipped_existing=${existing}`);
+  console.log(`retries=${stats.retries}`);
+  console.log(`discarded=${stats.discarded}`);
+  console.log(`failed=${stats.failed.join(",") || "none"}`);
+  console.log(`prompt_tokens=${prompt}`);
+  console.log(`completion_tokens=${completion}`);
+  console.log(`total_tokens=${total}`);
+  console.log("PILOT_HASHES_UNCHANGED");
+  if (stats.failed.length) {
+    throw new Error(`missing pages remain: ${stats.failed.join(",")}`);
+  }
+}
+
 async function main() {
+  if (process.argv.includes("--missing")) {
+    await runMissing();
+    return;
+  }
   printSelection();
   const keywords = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "keywords.json"), "utf8"));
   const bySlug = new Map(keywords.map((item) => [item.slug, item]));
