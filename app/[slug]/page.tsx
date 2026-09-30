@@ -15,6 +15,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { DisclosureBox } from "@/components/DisclosureBox";
 import { EditorialDetail } from "@/components/EditorialDetail";
 import { getEditorialContent } from "@/lib/editorial-content";
+import { SITE } from "@/lib/site";
 import Link from "next/link";
 
 export const dynamic = "error";
@@ -45,8 +46,8 @@ export default function Page({ params }: { params: { slug: string } }) {
   const siblings = getSiblingsForSlug(params.slug).slice(0, 2);
   const guide = getGuideForHub(hubSlug);
   const images = getShuffledImagesForSlug(params.slug, 4);
-  const jsonLd = jsonLdDetail(params.slug);
   const editorial = getEditorialContent(params.slug);
+  const jsonLd = jsonLdDetail(params.slug, editorial?.faq ?? []);
 
   const altBase = `${baseKeyword} 장기렌트 조건 설명 이미지`;
 
@@ -67,7 +68,7 @@ export default function Page({ params }: { params: { slug: string } }) {
       <header>
         <h1 className="heading-h1">{pageTitle}</h1>
         <p className="mt-3 text-sm text-slate-600">
-          작성: 장기렌트 정보 편집팀 · 검토: 자동차 금융 검토팀 · 최종 업데이트: 2025-12-26
+          작성: {SITE.editorial.authorName} · 검토: {SITE.editorial.reviewerName} · 최종 업데이트: {SITE.editorial.renewedOn}
         </p>
       </header>
 

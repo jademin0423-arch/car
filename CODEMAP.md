@@ -194,7 +194,8 @@ schema:
 
 - intro, sections, checkpoints, FAQ, conclusion
 - 현재 페이지의 heading, card, list 스타일만 사용
-- article CTA 없음
+- article CTA는 JSON 밖이다. `components/ArticleCta.tsx`가 top, middle, bottom을 붙인다
+- middle은 sections가 3개 이상일 때 `floor(sectionCount / 2) - 1` 섹션 다음이다
 
 `app/[slug]/page.tsx`는 본문만 가른다.
 
@@ -208,22 +209,20 @@ editorial JSON이 181개 있다. 파일이 없으면 legacy template으로 떨�
 
 ### 현재 runtime
 
-STEP 2에서 runtime CTA는 변경하지 않았다.
+STEP 5에서 external quote CTA를 통일했다. `replyalba.com` quote destination은 runtime에 없다.
 
 | 위치 | 대상 |
 |---|---|
 | Header primary | `https://jadelink.kr/car/` |
-| Header secondary | `/longterm-rent-guide` |
-| Global banner | `https://replyalba.com/intros/_frm/index.php?code=JUggdejXh2` |
-| Floating CTA | 같은 replyalba URL |
-| Exit Popup | 같은 replyalba URL |
-| Article top / middle / bottom | 없음 |
+| Header secondary / guide nav | `/longterm-rent-guide` |
+| Article top / middle / bottom | `https://jadelink.kr/car/` |
+| Desktop global, viewport 769px 이상 | 하단 floating 하나. 같은 URL |
+| Mobile global, viewport 768px 이하 | 하단 fixed 하나. 같은 URL |
+| Exit Popup | 같은 URL |
 
-Header secondary는 내부 이동이다. CTA가 아니다.
+Header secondary와 허브 링크는 내부 이동이다. CTA가 아니다.
 
-Desktop: 헤더 CTA, 하단 고정 배너, 우측 플로팅. Exit Popup은 `mouseleave`이고 `clientY <= 0`. sessionStorage 없음.
-
-Mobile `max-width: 768px`: 배너는 상단 고정, 플로팅은 우측 하단. 모바일 전용 Exit Popup 트리거는 없다.
+Desktop Exit Popup은 `clientY < 10`이고 세션당 한 번이다. Mobile Exit Popup은 스크롤이 300px을 넘은 뒤 스크롤이 멈추고 1.6초 후, 세션당 한 번이다. sessionStorage key는 `allcar-exit-popup`이다. 팝업이 열려 있으면 global CTA를 숨기고, 닫거나 ESC면 다시 보여 준다. 768px와 769px에서 desktop/mobile global CTA는 동시에 나오지 않는다.
 
 ### 확정 CTA 정책
 
@@ -233,7 +232,7 @@ FINAL CTA TARGET:
 
 이 값은 선택사항이나 future candidate가 아니다. ALLCAR과 이후 같은 장기렌트 legacy renewal의 확정 primary CTA destination이다.
 
-후속 UI/CTA renewal에서 아래 external primary quote CTA를 모두 이 URL로 통일한다.
+아래 external primary quote CTA는 이 URL로 통일되어 있다.
 
 - header
 - homepage primary CTA
@@ -245,7 +244,7 @@ FINAL CTA TARGET:
 - desktop Exit Popup CTA
 - mobile Exit Popup CTA
 
-`replyalba.com` CTA는 최종 renewal에서 제거 대상이다.
+`replyalba.com` quote CTA는 runtime에서 제거했다.
 
 내부 navigation link는 CTA가 아니다. `/longterm-rent-guide`를 포함한 기존 internal route는 유지한다.
 
@@ -282,29 +281,25 @@ Bing, IndexNow: 없음.
 
 ### 현재 runtime
 
-이번 단계에서 날짜 코드를 바꾸지 않았다. 세 표면은 서로 다르다.
+STEP 5에서 published와 modified를 분리했다. build-time freshness는 없다.
 
 | 표면 | 값 | source |
 |---|---|---|
-| 상세 화면 최종 업데이트 | `2025-12-26` | `app/[slug]/page.tsx` 하드코드 |
-| 푸터 최종 업데이트 | `2025-02-23` | `SITE.editorial.lastUpdatedDefault` |
-| JSON-LD `datePublished` | `2025-02-23` | 같은 상수. 상세·허브·가이드 |
-| JSON-LD `dateModified` | `2025-02-23` | published와 동일. 분리되어 있지 않음 |
-| sitemap `lastModified` | 빌드 시점 `new Date()` | 모든 URL이 같은 시각 |
+| 상세 화면 최종 업데이트 | `2026-09-30` | `SITE.editorial.renewedOn` |
+| 푸터 사이트 업데이트 | `2026-09-30` | 같은 상수. published와 별도 |
+| JSON-LD `datePublished` | `2025-02-23` | `SITE.editorial.lastUpdatedDefault` |
+| JSON-LD `dateModified` | `2026-09-30` | 상세 Article, 허브·가이드 WebPage |
+| sitemap `lastModified` | `2026-09-30` | `new Date("2026-09-30")`. current time 아님 |
 
-`keywords.json`에는 날짜 필드가 없다.
+`keywords.json`에는 날짜 필드가 없다. trust 5페이지는 sitemap에 없고, 본문 날짜를 이 STEP에서 갱신하지 않았다.
 
-상세 화면의 `2025-12-26`은 기존 historical modified-style 표시값이다. published 기준일로 쓰지 않는다.
-
-### 이후 freshness 정책
-
-runtime에는 아직 적용하지 않는다.
+### freshness 정책
 
 - `datePublished`는 original publication baseline `2025-02-23`을 보존한다
-- 본문이나 페이지가 substantive하게 수정되는 시점에 `dateModified`, 화면 updated, 해당 URL의 sitemap `lastModified`를 실제 작업일로 바꾼다
+- `dateModified`, 상세 화면 updated, 수정한 URL의 sitemap `lastModified`는 `2026-09-30`이다
 - `datePublished`와 `dateModified`는 분리한다
-- sitemap의 build-time `new Date()` 제거는 후속 freshness 단계다
-- 수정하지 않은 페이지에 거짓 최신 날짜를 찍지 않는다
+- sitemap에 `new Date()` current time과 `Date.now()`는 없다
+- 수정하지 않은 trust 페이지에 거짓 최신 날짜를 찍지 않는다
 - SEO lock과 날짜 갱신은 별개다
 
 ## 12. SITEMAP / ROBOTS
@@ -319,7 +314,7 @@ runtime에는 아직 적용하지 않는다.
 
 trust 5페이지(`/about`, `/contact`, `/terms`, `/privacy`, `/disclaimer`)는 sitemap에 없다.
 
-모든 `lastModified`는 build-time `new Date()`다. 이번 단계에서 수정하지 않는다.
+sitemap `lastModified`는 `2026-09-30`이다. build-time current timestamp는 제거했다. trust 페이지는 sitemap에 넣지 않았다.
 
 robots: `Allow: /`, host `https://allrecipes.kr`, sitemap `https://allrecipes.kr/sitemap.xml`. Disallow 없음.
 
@@ -332,9 +327,7 @@ robots: `Allow: /`, host `https://allrecipes.kr`, sitemap `https://allrecipes.kr
 
 ## 13. FAQ STRUCTURED DATA
 
-legacy JSON-LD `FAQPage.mainEntity`는 빈 배열이다. 상세 본문 FAQ도 없다.
-
-이번 단계에서 FAQ structured data를 고치지 않는다. editorial FAQ와 JSON-LD FAQ의 연결은 본문이 생긴 뒤의 structured-data 단계에서 한다.
+STEP 5에서 상세 181의 editorial FAQ를 `FAQPage.mainEntity`로 연결했다. Question `name`과 Answer `text`는 화면 FAQ와 같다. FAQ가 없으면 FAQPage를 만들지 않는다. 허브와 가이드의 빈 FAQPage는 제거했다. 홈 canonical slash와 허브 title suffix 중복은 그대로다.
 
 ## 14. CONTENT GENERATION PLAN
 
@@ -421,33 +414,46 @@ WARN. 기록만 한다. WARN만으로 전체를 다시 생성하지 않는다.
 - minor repetition
 - stylistic imperfection
 
-## 16. FUTURE UI PLAN
+## 16. UI / CTA / FAQ / FRESHNESS
 
-아직 구현하지 않는다. Rent-Pick은 원래 디자인·레이아웃 참고다. Royal은 완료된 legacy 구현 참고다. brand, domain, assets, routes, SEO, content는 ALLCAR 값을 유지한다.
+STEP 5 = COMPLETE.
 
-이후 기준:
+- UI = COMPLETE. 본문 폭 `max-w-3xl`, card, 769px 기준 header
+- CTA = COMPLETE. final target `https://jadelink.kr/car/`
+- FAQ STRUCTURED DATA = COMPLETE
+- FRESHNESS = COMPLETE
+- content generation = CLOSED
+
+session key: `allcar-exit-popup`
+
+datePublished: `2025-02-23`
+
+detail dateModified / visible updated / sitemap detail: `2026-09-30`
+
+build-time freshness removed.
+
+Rent-Pick은 원래 디자인·레이아웃 참고다. Royal은 완료된 legacy 구현 참고다. brand, domain, assets, routes, SEO, content는 ALLCAR 값을 유지한다.
+
+구현:
 
 - `max-w-3xl`
 - panel / card
-- 반응형 기준 768px
+- 반응형 기준 768px 이하는 mobile, 769px 이상은 desktop
 - article CTA top / middle / bottom
-- desktop bottom floating CTA
-- mobile bottom fixed CTA
+- desktop bottom floating CTA 하나
+- mobile bottom fixed CTA 하나
 - desktop Exit Popup과 mobile Exit Popup
 - 세션당 한 번
-- sessionStorage key는 ALLCAR 전용. 다른 사이트 key를 복사하지 않는다
+- sessionStorage key `allcar-exit-popup`
 - popup이 열려 있는 동안 global CTA를 숨긴다
 
-external primary quote CTA의 대상은 확정값 `https://jadelink.kr/car/`다. `replyalba.com`은 제거 대상이다. 내부 navigation은 유지한다.
+external primary quote CTA의 대상은 `https://jadelink.kr/car/`다. 내부 navigation은 유지한다.
 
 ## 17. KNOWN ISSUES
 
-이번 단계에서 고치지 않는다.
+이번 STEP에서 고치지 않는다.
 
 - 브랜드 문자열과 `allrecipes.kr`이 서로 다르다
-- header CTA와 banner/floating/exit CTA의 호스트가 갈라져 있다
-- 상세 화면 날짜, JSON-LD, sitemap lastModified가 서로 다르다
-- JSON-LD FAQ `mainEntity`가 비어 있다
 - 홈 canonical과 sitemap home의 trailing slash가 다르다
 - 허브·가이드 browser title에 layout suffix가 한 번 더 붙는다
 - legacy template 코드는 남아 있다. 현재 181개 본문은 editorial JSON이다

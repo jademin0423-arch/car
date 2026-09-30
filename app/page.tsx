@@ -6,6 +6,7 @@ import { Breadcrumb } from "@/components/Breadcrumb";
 import { ChecklistBox } from "@/components/ChecklistBox";
 import { CardGrid } from "@/components/CardGrid";
 import { DisclosureBox } from "@/components/DisclosureBox";
+import { SITE } from "@/lib/site";
 import { rootMetadata } from "@/lib/seo";
 import { jsonLdRoot } from "@/lib/jsonld";
 import type { Metadata } from "next";
@@ -41,8 +42,18 @@ export default function Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Breadcrumb items={[{ label: "장기렌트카" }]} />
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-center">
-        <div>
+      <section className="card overflow-hidden">
+        <div className="relative h-56 bg-slate-100 sm:h-72">
+          <Image
+            src={HERO_IMAGE.src}
+            alt={HERO_IMAGE.alt}
+            fill
+            sizes="(min-width: 769px) 768px, 100vw"
+            className="object-cover"
+            priority
+          />
+        </div>
+        <div className="p-5 sm:p-6">
           <h1 className="heading-h1">
             장기렌트카, 가격·조건·차종을 한 번에 정리한 실전 가이드
           </h1>
@@ -58,16 +69,20 @@ export default function Page() {
             <li>개인·법인·사업자별 세무·비용처리 차이를 확인합니다.</li>
             <li>차종·브랜드·조건별 허브로 이동해 세부 정보를 살펴봅니다.</li>
           </ul>
-        </div>
-        <div className="relative h-56 overflow-hidden rounded-xl border border-shell-border bg-slate-100 sm:h-72">
-          <Image
-            src={HERO_IMAGE.src}
-            alt={HERO_IMAGE.alt}
-            fill
-            sizes="(min-width: 1024px) 420px, 100vw"
-            className="object-cover"
-            priority
-          />
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={SITE.ctaPrimary.href}
+              className="inline-flex justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-primary-dark"
+            >
+              {SITE.ctaPrimary.label}
+            </a>
+            <a
+              href={SITE.ctaSecondary.href}
+              className="inline-flex justify-center rounded-full border border-primary bg-white px-4 py-2 text-sm font-medium text-primary no-underline hover:bg-blue-50"
+            >
+              {SITE.ctaSecondary.label}
+            </a>
+          </div>
         </div>
       </section>
 

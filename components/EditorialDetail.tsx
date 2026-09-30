@@ -1,4 +1,5 @@
 import type { EditorialContent } from "@/lib/editorial-content";
+import { ArticleCta } from "@/components/ArticleCta";
 
 interface Props {
   content: EditorialContent;
@@ -14,6 +15,8 @@ function textBlocks(text: string): string[] {
 export function EditorialDetail({ content }: Props) {
   const introBlocks = textBlocks(content.intro);
   const conclusionBlocks = textBlocks(content.conclusion);
+  const middleAfter =
+    content.sections.length >= 3 ? Math.floor(content.sections.length / 2) - 1 : -1;
   return (
     <article>
       {introBlocks.map((block, index) => (
@@ -21,15 +24,19 @@ export function EditorialDetail({ content }: Props) {
           {block}
         </p>
       ))}
-      {content.sections.map((section) => (
-        <section key={section.heading} className="mt-10">
-          <h2 className="heading-h2">{section.heading}</h2>
-          {section.paragraphs.map((paragraph, index) => (
-            <p key={`${section.heading}-${index}`} className="mt-3 text-body">
-              {paragraph}
-            </p>
-          ))}
-        </section>
+      <ArticleCta position="article-top" />
+      {content.sections.map((section, sectionIndex) => (
+        <div key={section.heading}>
+          <section className="mt-10">
+            <h2 className="heading-h2">{section.heading}</h2>
+            {section.paragraphs.map((paragraph, index) => (
+              <p key={`${section.heading}-${index}`} className="mt-3 text-body">
+                {paragraph}
+              </p>
+            ))}
+          </section>
+          {sectionIndex === middleAfter ? <ArticleCta position="article-middle" /> : null}
+        </div>
       ))}
       <section className="mt-10">
         <h2 className="heading-h2">확인 체크포인트</h2>
@@ -58,6 +65,7 @@ export function EditorialDetail({ content }: Props) {
           </p>
         ))}
       </section>
+      <ArticleCta position="article-bottom" />
     </article>
   );
 }

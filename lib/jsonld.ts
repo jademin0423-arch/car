@@ -66,13 +66,9 @@ export function jsonLdHub(hubSlug: HubSlug) {
       name: SITE.name
     },
     datePublished: SITE.editorial.lastUpdatedDefault,
-    dateModified: SITE.editorial.lastUpdatedDefault
+    dateModified: SITE.editorial.renewedOn
   };
-  const faq = {
-    "@type": "FAQPage",
-    mainEntity: []
-  };
-  return [breadcrumb, webpage, faq];
+  return [breadcrumb, webpage];
 }
 
 export function jsonLdGuideMain() {
@@ -109,16 +105,15 @@ export function jsonLdGuideMain() {
       name: SITE.name
     },
     datePublished: SITE.editorial.lastUpdatedDefault,
-    dateModified: SITE.editorial.lastUpdatedDefault
+    dateModified: SITE.editorial.renewedOn
   };
-  const faq = {
-    "@type": "FAQPage",
-    mainEntity: []
-  };
-  return [breadcrumb, webpage, faq];
+  return [breadcrumb, webpage];
 }
 
-export function jsonLdDetail(slug: string) {
+export function jsonLdDetail(
+  slug: string,
+  faq: { question: string; answer: string }[] = []
+) {
   const item = getKeywordBySlug(slug);
   const url = absoluteUrl(`/${slug}`);
   const breadcrumb = {
@@ -158,13 +153,23 @@ export function jsonLdDetail(slug: string) {
       name: SITE.name
     },
     datePublished: SITE.editorial.lastUpdatedDefault,
-    dateModified: SITE.editorial.lastUpdatedDefault,
+    dateModified: SITE.editorial.renewedOn,
     mainEntityOfPage: url
   };
-  const faq = {
-    "@type": "FAQPage",
-    mainEntity: []
-  };
-  return [breadcrumb, article, faq];
+  const graph: object[] = [breadcrumb, article];
+  if (faq.length > 0) {
+    graph.push({
+      "@type": "FAQPage",
+      mainEntity: faq.map((entry) => ({
+        "@type": "Question",
+        name: entry.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: entry.answer
+        }
+      }))
+    });
+  }
+  return graph;
 }
 

@@ -24,7 +24,7 @@ export function CardGrid({ title, subtitle, items }: Props) {
           ) : null}
         </div>
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {items.map((item) => (
           <Link key={item.href} href={item.href} className="card card-hover p-4">
             {item.badge ? <span className="badge mb-2">{item.badge}</span> : null}
