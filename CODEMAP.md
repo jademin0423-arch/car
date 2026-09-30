@@ -98,11 +98,11 @@ PROTECTED = 181
 SLUGS = 181
 TITLES = 181
 CANONICALS = 181
-EDITORIAL = 0
-FALLBACK = 181
+EDITORIAL = 5
+FALLBACK = 176
 ```
 
-현재 STEP 2 직후 editorial은 0, fallback은 181이다.
+STEP 3 pilot 이후 editorial은 5, fallback은 176, orphan은 0이다. 나머지 176개는 legacy template이다.
 
 ## 4. HUBS
 
@@ -167,7 +167,7 @@ editorial 파일이 없으면 `app/[slug]/page.tsx`의 기존 템플릿이 본�
 
 경로: `data/content/{slug}.json`
 
-현재 파일 수: 0. `data/content/.gitkeep`만 있다.
+현재 editorial JSON은 5개다. 없는 slug는 legacy template이다.
 
 로더: `lib/editorial-content.ts` `getEditorialContent(slug)`
 
@@ -338,19 +338,32 @@ legacy JSON-LD `FAQPage.mainEntity`는 빈 배열이다. 상세 본문 FAQ도 �
 
 ## 14. CONTENT GENERATION PLAN
 
-이번 STEP에서는 본문을 만들지 않는다. OpenAI 호출은 0이다.
+생성은 로컬 스크립트 `scripts/generate-editorial-content.mjs`만 사용한다. model은 `gpt-4o-mini`다. 키는 `.env.local`만 사용한다. server, GitHub Actions, Cloudflare, Vercel runtime, cron, 예약 생성은 없다.
 
-STEP 3:
+STEP 3 pilot은 완료했다. editorial 5, fallback 176.
 
-- 5-page pilot
+| slug | type | hub | intent | 판정 | chars | SHA256 |
+|---|---|---|---|---|---|---|
+| audi-a3-longterm-rent | detail | brand-import | 수입 소형 세단 | WARN | 927 | `d836835d95b45c275365f0356c3ebc765d3e1ad87657b48e0cb74f91a660e732` |
+| no-deposit-longterm-rent | guide | condition-type | 무보증·비용 구조 | WARN | 1110 | `8a06b63abb2ffd7277de1b75db3a49f3254e5c04a33b2138fba8ee271590153e` |
+| longterm-rent-license-plate-insurance | guide | guide-review | 번호판·보험 | WARN | 879 | `3ed0551dd798edd9c208690be819834f0e1f576a3b3d469fff01400edb5e1764` |
+| longterm-rent-car-price-compare | platform | price-compare | 견적 비교 기준 | WARN | 895 | `b8b72c82d245d619b76ee9902e3cb1940e2562d9d64a656f462a45f9023c31f2` |
+| corporate-longterm-rent | guide | customer-type | 법인 이용 판단 | WARN | 1029 | `d990209e93d1a87372ccac3472f5ce9bf4c7e20d9d66964db81ba47b2fcad84a` |
+
+BLOCK으로 저장본을 버린 뒤 다시 받은 페이지는 위 파일만 남겼다. 최종 5개에 BLOCK은 없다. WARN은 분량이 1300자보다 짧고, 일부 문장이 일반적인 점이다. 이 5개는 STEP 4에서 재생성하지 않는다.
+
+로컬 호출 usage 합계. 첫 schema 실패 3회는 usage를 남기기 전에 버려져 이 합계에 없다.
+
 - model: `gpt-4o-mini`
-- LOCAL ONLY
-- 키는 `.env.local`만 사용
-- server, GitHub Actions, Cloudflare, Vercel runtime, cron, 예약 생성 금지
+- prompt tokens: 8285
+- completion tokens: 10083
+- total tokens: 18368
+
+날짜는 바꾸지 않았다. CTA runtime도 바꾸지 않았다. 확정 CTA target은 `https://jadelink.kr/car/`다. editorial JSON에는 CTA가 없다.
 
 STEP 4:
 
-- pilot 파일은 유지
+- 위 pilot 5개 파일은 유지
 - 없는 slug만 생성
 - 최종 목표: editorial 181, fallback 0, orphan 0
 

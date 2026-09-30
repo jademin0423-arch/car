@@ -4,15 +4,28 @@ interface Props {
   content: EditorialContent;
 }
 
+function textBlocks(text: string): string[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+}
+
 export function EditorialDetail({ content }: Props) {
+  const introBlocks = textBlocks(content.intro);
+  const conclusionBlocks = textBlocks(content.conclusion);
   return (
     <article>
-      <p className="mt-6 text-body">{content.intro}</p>
+      {introBlocks.map((block, index) => (
+        <p key={`intro-${index}`} className={index === 0 ? "mt-6 text-body" : "mt-3 text-body"}>
+          {block}
+        </p>
+      ))}
       {content.sections.map((section) => (
         <section key={section.heading} className="mt-10">
           <h2 className="heading-h2">{section.heading}</h2>
-          {section.paragraphs.map((paragraph) => (
-            <p key={paragraph} className="mt-3 text-body">
+          {section.paragraphs.map((paragraph, index) => (
+            <p key={`${section.heading}-${index}`} className="mt-3 text-body">
               {paragraph}
             </p>
           ))}
@@ -21,8 +34,8 @@ export function EditorialDetail({ content }: Props) {
       <section className="mt-10">
         <h2 className="heading-h2">확인 체크포인트</h2>
         <ul className="mt-3 prose-list text-body">
-          {content.checkpoints.map((checkpoint) => (
-            <li key={checkpoint}>{checkpoint}</li>
+          {content.checkpoints.map((checkpoint, index) => (
+            <li key={`checkpoint-${index}`}>{checkpoint}</li>
           ))}
         </ul>
       </section>
@@ -39,7 +52,11 @@ export function EditorialDetail({ content }: Props) {
       </section>
       <section className="mt-10">
         <h2 className="heading-h2">정리</h2>
-        <p className="mt-3 text-body">{content.conclusion}</p>
+        {conclusionBlocks.map((block, index) => (
+          <p key={`conclusion-${index}`} className="mt-3 text-body">
+            {block}
+          </p>
+        ))}
       </section>
     </article>
   );

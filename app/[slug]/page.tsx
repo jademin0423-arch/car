@@ -72,7 +72,44 @@ export default function Page({ params }: { params: { slug: string } }) {
       </header>
 
       {editorial ? (
-        <EditorialDetail content={editorial} />
+        <>
+          <EditorialDetail content={editorial} />
+          <section className="mt-10">
+            <h2 className="heading-h2">관련 허브·상세와 다음 단계</h2>
+            <p className="mt-3 text-body">
+              더 구체적인 조건과 다른 차종을 함께 비교하려면, 아래 관련 링크를 순서대로
+              확인해 보세요.
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-slate-800">
+              <li>
+                <Link href="/" className="font-semibold">
+                  장기렌트카 전체 가이드로 돌아가기
+                </Link>
+              </li>
+              {hub && (
+                <li>
+                  <Link href={`/hub/${hubSlug}`} className="font-semibold">
+                    {hub.title} 다시 보기
+                  </Link>
+                </li>
+              )}
+              {siblings.map((sibling) => (
+                <li key={sibling.slug}>
+                  <Link href={`/${sibling.slug}`} className="font-semibold">
+                    {sibling.pageTitle || `${sibling.keyword} 장기렌트 안내`}
+                  </Link>
+                </li>
+              ))}
+              {guide && guide.slug !== params.slug && (
+                <li>
+                  <Link href={`/${guide.slug}`} className="font-semibold">
+                    {guide.pageTitle || `${guide.keyword} 장기렌트 가이드`}
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </section>
+        </>
       ) : (
         <>
       <section className="mt-6 card p-4 sm:p-5">

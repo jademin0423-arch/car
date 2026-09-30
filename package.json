@@ -7,7 +7,8 @@
     "build": "next build && node scripts/copy-images.js",
     "start": "next start",
     "lint": "next lint",
-    "verify:seo-protected": "node scripts/verify-seo-protected.js"
+    "verify:seo-protected": "node scripts/verify-seo-protected.js",
+    "generate:editorial-pilot": "node scripts/generate-editorial-content.mjs"
   },
   "dependencies": {
     "next": "14.2.8",
