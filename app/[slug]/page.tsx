@@ -13,6 +13,8 @@ import { jsonLdDetail } from "@/lib/jsonld";
 import { getShuffledImagesForSlug } from "@/lib/images";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { DisclosureBox } from "@/components/DisclosureBox";
+import { EditorialDetail } from "@/components/EditorialDetail";
+import { getEditorialContent } from "@/lib/editorial-content";
 import Link from "next/link";
 
 export const dynamic = "error";
@@ -44,6 +46,7 @@ export default function Page({ params }: { params: { slug: string } }) {
   const guide = getGuideForHub(hubSlug);
   const images = getShuffledImagesForSlug(params.slug, 4);
   const jsonLd = jsonLdDetail(params.slug);
+  const editorial = getEditorialContent(params.slug);
 
   const altBase = `${baseKeyword} 장기렌트 조건 설명 이미지`;
 
@@ -68,6 +71,10 @@ export default function Page({ params }: { params: { slug: string } }) {
         </p>
       </header>
 
+      {editorial ? (
+        <EditorialDetail content={editorial} />
+      ) : (
+        <>
       <section className="mt-6 card p-4 sm:p-5">
         <h2 className="heading-h2 text-lg">요약 한눈에 보기</h2>
         <div className="mt-3 grid gap-3 text-sm text-slate-800 sm:grid-cols-3">
@@ -263,6 +270,8 @@ export default function Page({ params }: { params: { slug: string } }) {
           전문가와 상의하시기 바랍니다.
         </p>
       </DisclosureBox>
+        </>
+      )}
     </div>
   );
 }
